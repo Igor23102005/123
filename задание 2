@@ -1,0 +1,266 @@
+ 1. Базовый класс `Learner`
+
+```java
+import java.util.List;
+
+abstract class Learner implements Comparable<Learner> {
+    private String name; // Имя
+    private String gender; // Пол
+    private int age; // Возраст
+
+    public Learner(String name, String gender, int age) {
+        setName(name);
+        this.gender = gender;
+        this.age = age;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        if (name == null || name.isEmpty() || !Character.isUpperCase(name.charAt(0))) {
+            throw new IllegalArgumentException("Имя должно начинаться с большой буквы.");
+        }
+        this.name = name;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public abstract double getPerformanceRating(); // Метод для получения рейтинга успеваемости
+
+    public abstract boolean isEligibleForSpecialScholarship(); // Метод для проверки на специальную стипендию
+
+    @Override
+    public int compareTo(Learner other) {
+        return this.name.compareTo(other.name); // Сравнение по имени
+    }
+}
+```
+
+*--* 2. Класс `Schoolchild` (школьник)
+
+```java
+import java.util.List;
+
+class Schoolchild extends Learner {
+    private int mathGrade;
+    private int russianGrade;
+    private int historyGrade;
+    private int englishGrade;
+    private List<Integer> otherGrades; // Другие оценки
+    private String olympicLevel; // Уровень олимпиады
+    private int schoolNumber; // Номер школы
+
+    public Schoolchild(String name, String gender, int age, int mathGrade, int russianGrade,
+                       int historyGrade, int englishGrade, List<Integer> otherGrades,
+                       String olympicLevel, int schoolNumber) {
+        super(name, gender, age);
+        setMathGrade(mathGrade);
+        setRussianGrade(russianGrade);
+        setHistoryGrade(historyGrade);
+        setEnglishGrade(englishGrade);
+        this.otherGrades = otherGrades;
+        this.olympicLevel = olympicLevel;
+        this.schoolNumber = schoolNumber;
+    }
+
+    public void setMathGrade(int grade) {
+        validateGrade(grade);
+        this.mathGrade = grade;
+    }
+
+    public void setRussianGrade(int grade) {
+        validateGrade(grade);
+        this.russianGrade = grade;
+    }
+
+    public void setHistoryGrade(int grade) {
+        validateGrade(grade);
+        this.historyGrade = grade;
+    }
+
+    public void setEnglishGrade(int grade) {
+        validateGrade(grade);
+        this.englishGrade = grade;
+    }
+
+    public double getPerformanceRating() {
+        int totalGrades = mathGrade + russianGrade + historyGrade + englishGrade;
+        int countGrades = 4;
+
+        if (otherGrades != null) {
+            for (int grade : otherGrades) {
+                totalGrades += grade;
+                countGrades++;
+            }
+        }
+        return (double) totalGrades / countGrades;
+    }
+
+    public boolean isEligibleForSpecialScholarship() {
+        boolean hasAllHighMarks = mathGrade == 5 && russianGrade == 5 && 
+                                   historyGrade == 5 && englishGrade == 5;
+
+        boolean hasValidOlympicParticipation = olympicLevel.equals("областная") ||
+                                               olympicLevel.equals("первое место") ||
+                                               olympicLevel.equals("призовое");
+
+        boolean hasMinimumOtherGrades = otherGrades == null || otherGrades.stream()
+                .allMatch(grade -> grade >= 4);
+
+        return hasAllHighMarks && hasValidOlympicParticipation && hasMinimumOtherGrades;
+    }
+
+    private void validateGrade(int grade) {
+        if (grade < 2 || grade > 5) {
+            throw new IllegalArgumentException("Оценка должна быть от 2 до 5.");
+        }
+    }
+
+public String getOlympicLevel() {
+        return olympicLevel;
+    }
+
+    public int getSchoolNumber() {
+        return schoolNumber;
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + 
+               ", School Number: " + schoolNumber + 
+               ", Performance Rating: " + getPerformanceRating() + 
+               ", Olympic Level: " + olympicLevel;
+    }
+}
+```
+
+*--* 3. Класс `Student` (студент)
+
+```java
+import java.util.List;
+
+class Student extends Learner {
+    private double averageScore; // Средний балл
+    private List<Double> courseworkGrades; // Оценки за курсовые работы
+
+    public Student(String name, String gender, int age, List<Double> courseworkGrades) {
+        super(name, gender, age);
+        this.courseworkGrades = courseworkGrades;
+        calculateAverageScore();
+    }
+
+    private void calculateAverageScore() {
+        if (courseworkGrades == null || courseworkGrades.isEmpty()) {
+            this.averageScore = 0;
+        } else {
+            double total = courseworkGrades.stream().mapToDouble(Double::doubleValue).sum();
+            this.averageScore = total / courseworkGrades.size();
+        }
+    }
+
+    public double getPerformanceRating() {
+        return averageScore;
+    }
+
+    public boolean isEligibleForSpecialScholarship() {
+        return averageScore >= 4.75 && courseworkGrades.stream().allMatch(g -> g == 5);
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + 
+               ", Average Score: " + averageScore;
+    }
+}
+```
+
+*--* 4. Главный класс и выполнение задач
+
+```java
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        List<Schoolchild> schoolchildren = new ArrayList<>();
+        List<Student> students = new ArrayList<>();
+
+        // Создание школьников
+        schoolchildren.add(new Schoolchild("Аня", "Ж", 15, 5, 5, 5, 5, 
+                Arrays.asList(4, 4, 5, 4), "областная", 1));
+        schoolchildren.add(new Schoolchild("Петя", "М", 16, 5, 5, 5, 5, 
+                Arrays.asList(4, 5, 5, 4), "городская", 2));
+        schoolchildren.add(new Schoolchild("Катя", "Ж", 14, 4, 4, 4, 4, 
+                null, "", 3));
+
+        // Создание студентов
+        students.add(new Student("Иван", "М", 20, Arrays.asList(5.0, 5.0, 4.75)));
+        students.add(new Student("Маша", "Ж", 21, Arrays.asList(4.5, 5.0, 5.0)));
+
+        // Вывод информации о девочках, получивших первые места на олимпиадах любого уровня
+        System.out.println("Девочки с первыми местами на олимпиадах:");
+        for (Schoolchild schoolchild : schoolchildren) {
+            if (schoolchild.getGender().equals("Ж") && schoolchild.getOlympicLevel().equals("первое место")) {
+                System.out.println(schoolchild);
+            }
+        }
+
+        // Вывод информации о студентах с оценками за курсовые работы
+        System.out.println("\nСтуденты с оценками за курсовые работы:");
+        for (Student student : students) {
+            if (student.getPerformanceRating() > 0) {
+                System.out.println(student);
+            }
+        }
+
+        // Список кандидатов на специальную стипендию
+        List<Learner> scholarshipCandidates = new ArrayList<>();
+        for (Schoolchild schoolchild : schoolchildren) {
+            if (schoolchild.isEligibleForSpecialScholarship()) {
+                scholarshipCandidates.add(schoolchild);
+            }
+        }
+        for (Student student : students) {
+            if (student.isEligibleForSpecialScholarship()) {
+                scholarshipCandidates.add(student);
+            }
+        }
+
+        // Сортировка списка по именам
+        Collections.sort(scholarshipCandidates);
+        System.out.println("\nКандидаты на специальную стипендию:");
+        for (Learner learner : scholarshipCandidates) {
+            System.out.println(learner);
+        }
+
+        // Определение лучшего студента и школьника
+        Schoolchild bestSchoolchild = Collections.max(schoolchildren, Comparator.comparingDouble(Schoolchild::getPerformanceRating));
+
+Student bestStudent = Collections.max(students, Comparator.comparingDouble(Student::getPerformanceRating));
+
+        System.out.println("\nЛучший школьник по успеваемости: " + bestSchoolchild);
+        System.out.println("Лучший студент по успеваемости: " + bestStudent);
+
+        // Сортировка школьников по рейтингу успеваемости и номеру школы
+        schoolchildren.sort(Comparator.comparingDouble(Schoolchild::getPerformanceRating).reversed()
+                                            .thenComparing(Schoolchild::getSchoolNumber));
+        System.out.println("\nСписок школьников по рейтингу успеваемости:");
+        for (Schoolchild schoolchild : schoolchildren) {
+            System.out.println(schoolchild);
+        }
+
+        // Сортировка студентов по рейтингу успеваемости
+        students.sort(Comparator.comparingDouble(Student::getPerformanceRating).reversed());
+        System.out.println("\nСписок студентов по рейтингу успеваемости:");
+        for (Student student : students) {
+            System.out.println(student);
+        }
+    }
+}
