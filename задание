@@ -1,0 +1,229 @@
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+interface PupilComparator extends Comparator<Pupil> {}
+
+class Pupil implements Comparable<Pupil> {
+    String name;
+    String gender;
+    int age;
+
+    Pupil(String name, String gender, int age) {
+        if (name == null || name.isEmpty() || !Character.isUpperCase(name.charAt(0))) {
+            throw new IllegalArgumentException("Имя должно начинаться с заглавной буквы и не быть пустым.");
+        }
+        if (gender == null || gender.isEmpty()) {
+            throw new IllegalArgumentException("Пол не может быть пустым.");
+        }
+        if (age <= 0) {
+            throw new IllegalArgumentException("Возраст должен быть положительным числом.");
+        }
+        this.name = name;
+        this.gender = gender;
+        this.age = age;
+    }
+
+    @Override
+    public int compareTo(Pupil other) {
+        return this.name.compareTo(other.name); // Сравнение по имени
+    }
+
+    public boolean isEligibleForScholarship() {
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return "Имя: " + name + ", Пол: " + gender + ", Возраст: " + age;
+    }
+}
+
+class Schoolchild extends Pupil implements PupilComparator {
+    Map<String, Integer> grades;
+    List<Olympiad> olympiads;
+    int schoolNumber;
+
+    Schoolchild(String name, String gender, int age, int schoolNumber) {
+        super(name, gender, age);
+        this.schoolNumber = schoolNumber;
+        grades = new HashMap<>();
+        olympiads = new ArrayList<>();
+    }
+
+    public void addGrade(String subject, int grade) {
+        validateGrade(grade);
+        grades.put(subject, grade);
+    }
+
+    public void addOlympiad(Olympiad olympiad) {
+        olympiads.add(olympiad);
+    }
+
+    @Override
+    public boolean isEligibleForScholarship() {
+        // ... (логика проверки на стипендию - без изменений)
+        boolean hasMath = grades.containsKey("Математика") && grades.get("Математика") == 5;
+        boolean hasRussian = grades.containsKey("Русский язык") && grades.get("Русский язык") == 5;
+        boolean hasHistory = grades.containsKey("История") && grades.get("История") == 5;
+        boolean hasEnglish = grades.containsKey("Английский язык") && grades.get("Английский язык") == 5;
+
+        boolean otherGradesOk = true;
+        for (int grade : grades.values()) {
+            if (grade < 4) otherGradesOk = false;
+        }
+
+        boolean hasRegionalOlympiad = false;
+        for (Olympiad o : olympiads) {
+            if (o.level.equals("Областная")) hasRegionalOlympiad = true;
+        }
+        boolean hasSchoolFirst = false;
+        for (Olympiad o : olympiads) {
+            if (o.level.equals("Школьная") && o.place == 1) hasSchoolFirst = true;
+        }
+        boolean hasCityPrize = false;
+        for (Olympiad o : olympiads) {
+            if (o.level.equals("Городская") && o.place > 0) hasCityPrize = true;
+        }
+
+
+        return hasMath && hasRussian && hasHistory && hasEnglish && otherGradesOk && (hasRegionalOlympiad || hasSchoolFirst || hasCityPrize);
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + ", Оценки: " + grades + ", Олимпиады: " + olympiads + ", Номер школы: " + schoolNumber;
+    }
+
+    public double getAverageGrade() {
+        return grades.values().stream().mapToDouble(i -> i).average().orElse(0);
+    }
+
+    @Override
+    public int compare(Pupil p1, Pupil p2) {
+        if (!(p1 instanceof Schoolchild) || !(p2 instanceof Schoolchild)) {
+            throw new IllegalArgumentException("Сравнивать можно только школьников");
+        }
+        Schoolchild s1 = (Schoolchild) p1;
+        Schoolchild s2 = (Schoolchild) p2;
+        int gradeComparison = Double.compare(s2.getAverageGrade(), s1.getAverageGrade()); //Сначала по успеваемости (обратная сортировка)
+        return gradeComparison != 0 ? gradeComparison : Integer.compare(s1.schoolNumber, s2.schoolNumber); //Потом по номеру школы
+    }
+}
+
+
+class Student extends Pupil implements PupilComparator {
+    List<Integer> sessionGrades;
+    List<Integer> courseGrades;
+
+    Student(String name, String gender, int age) {
+        super(name, gender, age);
+        sessionGrades = new ArrayList<>();
+        courseGrades = new ArrayList<>();
+    }
+
+    public void addSessionGrade(int grade) {
+        validateGrade(grade);
+        sessionGrades.add(grade);
+    }
+
+    public void addCourseGrade(int grade) {
+        validateGrade(grade);
+        courseGrades.add(grade);
+    }
+
+    @Override
+    public boolean isEligibleForScholarship() {
+        double avgSessionGrade = sessionGrades.stream().mapToDouble(i -> i).average().orElse(0);
+        boolean hasCourse5 = courseGrades.contains(5);
+        return avgSessionGrade >= 4.75 && hasCourse5;
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + ", Оценки сессии: " + sessionGrades + ", Оценки за курсовые: " + courseGrades;
+    }
+
+    public double getAverageGrade() {
+        return sessionGrades.stream().mapToDouble(i -> i).average().orElse(0);
+    }
+
+    @Override
+    public int compare(Pupil p1, Pupil p2) {
+        if (!(p1 instanceof Student) || !(p2 instanceof Student)) {
+            throw new IllegalArgumentException("Сравнивать можно только студентов");
+        }
+        Student s1 = (Student) p1;
+        Student s2 = (Student) p2;
+        return Double.compare(s2.getAverageGrade(), s1.getAverageGrade()); // Сортировка студентов по успеваемости (обратная)
+    }
+}
+
+class Olympiad {
+    String level;
+    int place;
+
+    Olympiad(String level, int place) {
+        this.level = level;
+        this.place = place;
+    }
+
+    @Override
+    public String toString() {
+        return level + " (" + (place > 0 ? place + " место" : "без призового места") + ")";
+    }
+}
+
+
+public class Main {
+    public static void validateGrade(int grade) {
+        if (grade < 2 || grade > 5) {
+            throw new IllegalArgumentException("Оценка должна быть в диапазоне от 2 до 5.");
+        }
+    }
+
+    public static void main(String[] args) {
+        // ... (создание школьников и студентов - аналогично предыдущему коду)
+
+        //Кандидаты на стипендию, отсортированные по фамилиям
+        List<Pupil> scholarshipCandidates = new ArrayList<>();
+        scholarshipCandidates.addAll(schoolChildren);
+        scholarshipCandidates.addAll(students);
+
+        List<Pupil> sortedScholarshipCandidates = scholarshipCandidates.stream()
+                .filter(pupil -> pupil.isEligibleForScholarship())
+                .sorted()
+                .collect(Collectors.toList());
+
+        System.out.println("\nКандидаты на стипендию (отсортированы по фамилиям):");
+        sortedScholarshipCandidates.forEach(System.out::println);
+
+
+        //Поиск лучших и сортировка
+        Schoolchild bestSchoolchild = schoolChildren.stream()
+                .max(Comparator.comparingDouble(Schoolchild::getAverageGrade))
+                .orElse(null);
+
+        Student bestStudent = students.stream()
+                .max(Comparator.comparingDouble(Student::getAverageGrade))
+                .orElse(null);
+
+        List<Schoolchild> sortedSchoolchildren = schoolChildren.stream()
+                .sorted(new Schoolchild(" ", " ", 0, 0)) // Используем Schoolchild как компаратор
+                .collect(Collectors.toList());
+
+        List<Student> sortedStudents = students.stream()
+                .sorted(new Student(" ", " ", 0)) // Используем Student как компаратор
+                .collect(Collectors.toList());
+
+        System.out.println("\nЛучший школьник: " + (bestSchoolchild != null ? bestSchoolchild : "Нет данных"));
+        System.out.println("Лучший студент: " + (bestStudent != null ? bestStudent : "Нет данных"));
+        System.out.println("\nШкольники, отсортированные по успеваемости, а затем по номеру школы:");
+        sortedSchoolchildren.forEach(System.out::println);
+        System.out.println("\nСтуденты, отсортированные по успеваемости:");
+        sortedStudents.forEach(System.out::println);
+    }
+}
